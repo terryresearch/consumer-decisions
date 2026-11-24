@@ -220,15 +220,17 @@ noscript p { margin: 0; }
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { S.hidden += 1; save(); } });
 
   /* ------------------------------------------------------------------ backend */
-  function rpc(fn, body, keepalive) {
+  function rpc(fn, body, keepalive, timeoutMs) {
     if (PREVIEW) { console.log("[preview] " + fn, body); return Promise.resolve(fn === "assign" ? { condition: PREVIEW, source: "preview" } : null); }
+    var ctl = (timeoutMs && window.AbortController) ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, timeoutMs) : null;
     return fetch(SPEC.supabaseUrl + "/rest/v1/rpc/" + fn, {
-      method: "POST", keepalive: !!keepalive,
+      method: "POST", keepalive: !!keepalive, signal: ctl ? ctl.signal : undefined,
       headers: { "Content-Type": "application/json", apikey: SPEC.supabaseKey, Authorization: "Bearer " + SPEC.supabaseKey },
       body: JSON.stringify(body)
     }).then(function (r) {
       return r.text().then(function (t) { if (!r.ok) throw new Error(fn + " " + r.status + " " + t.slice(0, 200)); return t ? JSON.parse(t) : null; });
-    });
+    }).then(function (v) { if (timer) clearTimeout(timer); return v; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function logEvent(kind, detail) {
     return rpc("log_event", { p_study: SPEC.study, p_pid: S.pid, p_session: S.session, p_kind: kind, p_detail: detail || null }, true)
@@ -253,9 +255,10 @@ noscript p { margin: 0; }
     }
     return d;
   }
-  function send(status, keepalive) {
+  function send(status, keepalive, timeoutMs) {
     S.seq += 1; save();
-    return rpc("submit", { p_study: SPEC.study, p_pid: S.pid, p_session: S.session, p_seq: S.seq, p_status: status, p_data: payload() }, keepalive);
+    return rpc("submit", { p_study: SPEC.study, p_pid: S.pid, p_session: S.session, p_seq: S.seq, p_status: status, p_data: payload() },
+               keepalive, timeoutMs);
   }
 
   /* ------------------------------------------------------------------ rendering */
@@ -276,7 +279,7 @@ noscript p { margin: 0; }
 
   function render() {
     if (S.status === "declined") return showDeclined();
-    if (S.status === "complete") return showDone(false);
+    if (S.status === "complete") return S.saved ? showDone(false) : finish();   // the last save never came back: try again
     var page = PAGE[S.pages[S.idx]];
     setProgress(S.idx);
     card.innerHTML = "";
@@ -531,14 +534,17 @@ noscript p { margin: 0; }
     showDeclined();
   }
 
+  /* The study counts as finished only once the server has the complete row (S.saved). Until then a reload
+     comes back here and saves again, so nobody reaches the completion link with their answers unsaved. */
   function finish() {
-    S.idx = S.pages.length; S.status = "complete"; S.finishedAt = Date.now(); save();
+    S.idx = S.pages.length; S.status = "complete"; S.saved = false; S.finishedAt = S.finishedAt || Date.now(); save();
     var btn = document.getElementById("next");
     if (btn) { btn.disabled = true; btn.textContent = "Saving\u2026"; }
+    else { setProgress(S.pages.length); card.innerHTML = '<div class="end"><p>Saving your answers\u2026</p></div>'; }
     var tries = 0;
     var attempt = function () {
       tries += 1;
-      send("complete", false).then(function () { showDone(true); }).catch(function (e) {
+      send("complete", false, 10000).then(saved).catch(function (e) {
         console.error(e);
         if (tries < 3) return setTimeout(attempt, 1200 * tries);
         logEvent("submit_failed", { msg: String(e).slice(0, 200) });
@@ -547,6 +553,7 @@ noscript p { margin: 0; }
     };
     attempt();
   }
+  function saved() { S.saved = true; save(); showDone(true); }
 
   function showRetry() {
     setProgress(S.pages.length);
@@ -557,7 +564,7 @@ noscript p { margin: 0; }
     var fails = 0;
     document.getElementById("retry").addEventListener("click", function () {
       var b = this; b.disabled = true; b.textContent = "Saving\u2026";
-      send("complete", false).then(function () { showDone(true); }).catch(function () {
+      send("complete", false, 10000).then(saved).catch(function () {
         fails += 1; b.disabled = false; b.textContent = "Try again";
         document.getElementById("fallback").hidden = false;
       });
