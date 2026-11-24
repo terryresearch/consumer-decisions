@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Consumer Decision Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* The look of the Qualtrics files (custom CSS "lane look", 2026-11-24): zinc neutrals, Inter, one white card. */
+:root {
+  --bg: #fafafa; --card: #ffffff; --fg: #09090b; --muted: #71717a; --soft: #f4f4f5;
+  --border: #e4e4e7; --border-strong: #d4d4d8; --primary: #18181b; --primary-fg: #fafafa;
+  --ring: #a1a1aa; --danger: #dc2626; --radius: 12px;
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); }
+body { font-family: var(--font); color: var(--fg); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+button, input { font-family: inherit; }
+
+.progress { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: var(--border); z-index: 50; }
+.progress > div { height: 4px; width: 0; background: var(--primary); transition: width .3s ease; }
+
+.wrap { max-width: 640px; margin: 0 auto; padding: 48px 16px 40px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        box-shadow: 0 1px 2px rgba(0,0,0,.04); padding: 28px 28px 24px; }
+@media (max-width: 480px) { .wrap { padding: 28px 12px 24px; } .card { padding: 20px 16px 18px; } }
+
+/* questions */
+.q { margin: 0 0 28px; padding: 0; border: 0; }
+.q:last-child { margin-bottom: 0; }
+.qt { display: block; padding: 0 0 14px; margin: 0; font-size: 17px; font-weight: 500; line-height: 1.5; }
+.qt p { margin: 0 0 10px; }
+.qt p:last-child { margin-bottom: 0; }
+.q-text .qt { font-weight: 400; font-size: 16px; padding-bottom: 0; }
+.err { color: var(--danger); font-size: 14px; font-weight: 500; padding: 0 0 8px; }
+.err[hidden] { display: none; }
+
+/* vertical multiple choice: radio cards */
+.mc { display: grid; gap: 8px; }
+.opt { position: relative; display: flex; align-items: center; min-height: 48px; width: 100%; margin: 0;
+       padding: 12px 14px 12px 46px; background: var(--card); color: var(--fg); border: 1px solid var(--border);
+       border-radius: 10px; font-size: 16px; font-weight: 400; line-height: 1.4; cursor: pointer;
+       transition: border-color .15s, background-color .15s, box-shadow .15s; }
+.opt:hover { border-color: var(--muted); }
+.opt input[type=radio] { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.opt::before { content: ""; position: absolute; left: 15px; top: 50%; width: 18px; height: 18px; margin-top: -9px;
+               border: 1.5px solid var(--muted); border-radius: 50%; background: var(--card); box-sizing: border-box; }
+.opt.on { border-color: var(--primary); background: var(--soft); box-shadow: inset 0 0 0 1px var(--primary); }
+.opt.on::before { border: 5px solid var(--primary); }
+.opt:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring); }
+.opt-wrap { display: block; }
+.txt.opt-text { display: block; margin: 8px 0 2px 46px; width: calc(100% - 46px); }
+.txt.opt-text[hidden] { display: none; }
+
+/* the six choice pages: two big tappable cards side by side */
+.tap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.tap-card { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 76px;
+            padding: 14px 10px; background: var(--card); color: var(--fg); border: 1px solid var(--border);
+            border-radius: var(--radius); font-size: 18px; font-weight: 600; line-height: 1.3; cursor: pointer; }
+.tap-card:hover { border-color: var(--muted); }
+.tap-card:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring); }
+.tap-card.on { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+
+/* Box B and its ticket table */
+.hb-ask { margin: 0 0 14px !important; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.hb-box { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); padding: 16px 18px 6px; font-weight: 400; }
+.hb-name { margin: 0 !important; font-size: 17px; font-weight: 600; }
+.hb-sub { margin: 2px 0 10px !important; color: var(--muted); font-size: 15px; }
+table.hb-t { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+table.hb-t th { text-align: left; padding: 8px 6px; color: var(--muted); font-weight: 500; font-size: 13px; border-bottom: 1px solid var(--border); }
+table.hb-t td { padding: 10px 6px; border-bottom: 1px solid var(--border); }
+table.hb-t tr:last-child td { border-bottom: 0; }
+table.hb-t .r { text-align: right; }
+table.hb-t th.r, table.hb-t td.r { width: 84px; }
+
+/* horizontal 1 to 7 scale: a row of tiles */
+.scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.tile { position: relative; display: flex; align-items: center; justify-content: center; height: 48px; margin: 0;
+        border: 1px solid var(--border); border-radius: 10px; background: var(--card); font-size: 17px; font-weight: 600;
+        line-height: 1; cursor: pointer; }
+.tile:hover { background: var(--soft); }
+.tile input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.tile.on { background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
+.tile:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ends { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.ends span:last-child { text-align: right; }
+
+/* text entry */
+.txt { height: 44px; padding: 8px 12px; margin: 0; font-size: 16px; color: var(--fg); background: var(--card);
+       border: 1px solid var(--border-strong); border-radius: 8px; box-shadow: none; outline: none; }
+.txt:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(161,161,170,.45); }
+.txt.num { width: 120px; max-width: 100%; }
+
+/* sliders: no handle until the first touch, the number shows over the handle as it moves */
+.sl { position: relative; }
+.sl-valrow { position: relative; height: 36px; margin: 4px 0 10px; }
+.sl-val { position: absolute; left: 0; top: 0; min-width: 56px; height: 36px; padding: 0 10px; display: inline-flex;
+          align-items: center; justify-content: center; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;
+          color: var(--fg); background: var(--soft); border: 1px solid var(--border); border-radius: 8px; }
+.sl-val.empty { color: var(--ring); font-weight: 500; }
+.sl-nums { position: relative; height: 14px; margin: 0 0 16px; }
+.sl-nums span { position: absolute; top: 0; font-size: 14px; line-height: 1; color: #52525b; font-variant-numeric: tabular-nums;
+                white-space: nowrap; transform: translateX(-50%); }
+.sl-nums span:first-child { transform: none; }
+.sl-nums span:last-child { transform: translateX(-100%); }
+@media (max-width: 480px) { .sl-nums span { font-size: 13px; } .sl-nums span:nth-child(even) { visibility: hidden; } }
+.sl-track { position: relative; height: 24px; cursor: pointer; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent; }
+.sl-rail, .sl-fill { position: absolute; left: 0; top: 9px; height: 6px; border-radius: 999px; }
+.sl-rail { right: 0; background: var(--border); }
+.sl-fill { width: 0; background: var(--primary); }
+.sl-thumb { position: absolute; top: 1px; left: 0; width: 22px; height: 22px; margin-left: -11px; box-sizing: border-box;
+            border: 2px solid var(--primary); border-radius: 50%; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.2); cursor: grab; }
+.sl.untouched .sl-thumb, .sl.untouched .sl-fill { visibility: hidden; }
+.sl-track:focus-visible .sl-rail { box-shadow: 0 0 0 3px rgba(161,161,170,.6); }
+
+/* the leaflet (Study 3) */
+.hb-leaflet { background: #ffffff; border: 1px solid var(--border-strong); border-radius: 4px; border-top: 4px solid var(--primary);
+              padding: 20px 22px 16px; margin: 0; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 18px rgba(0,0,0,.05);
+              font-size: 15px; line-height: 1.5; color: var(--fg); font-weight: 400; }
+.hb-leaflet h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.hb-leaflet p { margin: 0 0 10px; }
+.hb-leaflet ul { margin: 0 0 12px; padding: 0 0 0 20px; list-style: square; }
+.hb-leaflet li { margin: 3px 0; padding-left: 2px; }
+.hb-leaflet .hb-leaflet-foot { margin: 0; padding-top: 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+
+/* instruction and debrief lines */
+.hb-lines { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.hb-lines li { position: relative; padding-left: 18px; margin: 0; }
+.hb-lines li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--ring); }
+
+/* Next */
+.buttons { margin: 8px 0 0; text-align: right; }
+.buttons[hidden] { display: none; }
+.btn { min-width: 112px; height: 44px; padding: 0 20px; margin: 0; background: var(--primary); color: var(--primary-fg); border: 0;
+       border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+.btn:hover { opacity: .88; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring); }
+@media (max-width: 480px) { .btn { width: 100%; } }
+.note { margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+.note.bad { color: var(--danger); }
+.end p { margin: 0 0 12px; }
+.end p:last-child { margin-bottom: 0; }
+.end a { color: var(--fg); font-weight: 600; }
+.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; letter-spacing: .04em; }
+noscript p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"><div id="bar"></div></div>
+<main class="wrap">
+  <div class="card" id="card">
+    <noscript><p>This study needs JavaScript. Please turn it on and reload the page.</p></noscript>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var SPEC = {"study": "s3", "version": "2026-11-24", "cells": {"L1": {"cond_lines": "1", "condition": "L1"}, "L3": {"cond_lines": "3", "condition": "L3"}}, "record": ["condition", "cond_lines"], "choiceOrderKey": null, "pages": [{"id": "consent", "timer": "t_consent", "items": [{"type": "mc", "key": "consent", "html": "<div class=\"hb-letter\" style=\"text-align:left;\"><p style=\"margin:0 0 4px;font-size:16px;font-weight:600;text-align:center;letter-spacing:.02em;\"><strong>UNIVERSITY OF GEORGIA<\/strong><\/p><p style=\"margin:0 0 4px;font-size:16px;font-weight:600;text-align:center;letter-spacing:.02em;\"><strong>CONSENT LETTER<\/strong><\/p><p style=\"margin:0 0 4px;font-size:16px;font-weight:600;text-align:center;letter-spacing:.02em;\"><strong>Consumer Decision Study<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Dear Participant,<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">My name is Amin Shiri, and I am a faculty member in the Marketing Department at the University of Georgia. I am inviting you to take part in a research study. You are invited to participate in this study because you signed up at the research platform where you found this study. You can participate in this study if you are over the age of 18 and fluent in English. Your participation is voluntary.<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">I am doing research on how people make different decisions as consumers. The Terry College of Business is paying for the study.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>How long will this study be?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The study is expected to take about 1 minute to complete. You can complete it at your own pace. The study will be entirely online.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>What will happen if I take part in this research study?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">If you agree to participate in this study, you will read some scenarios and answer some questions about them and your background. During the study, you may not be made fully aware of or be misled about the nature or purpose of the study.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Study Participation and Early Withdrawal<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">If, for any reason, you choose not to continue your participation, you can terminate your participation at any time. If you decide to stop or withdraw from the study or the investigator terminates your participation, the information/data collected from or about you up to the point of your withdrawal will be kept as part of the study and may continue to be analyzed.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>What are the risks of participating in the study?<\/strong><\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Risk of Completing Tasks<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">You may find the task to be boring. If so, you may take a break at any time. You can refuse to take part or stop at any time without penalty. Your decision to participate or not will not impact your eligibility to participate in other studies on the platform.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Questionnaire/Survey Risks<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The study does not involve more than minimal risks.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Loss of Confidentiality<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The study does not directly collect any personally identifiable information. Any personally identifiable information the participant platform may provide me (e.g., your Prolific ID) will be kept in a separate file and not linked to your responses. No one, including the researchers, can link your responses to your identity. This research involves the transmission of data over the Internet. Every reasonable effort has been taken to ensure the effective use of available technology; however, confidentiality during online communication cannot be guaranteed.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Are there any benefits from being in this research study?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Your responses will help us better understand how people make decisions in different contexts. You will not receive any benefits personally.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>What alternatives are available?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">You may choose not to take part in this research study.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>How Will You Keep My Study Records Confidential?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Your information will be kept in password-protected computers at the University of Georgia. Antivirus software and firewalls have been installed to protect these computers.<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The following people or groups may review your study records for purposes such as quality control or safety:<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The Researcher and any member of the research team<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The Institutional Review Board at the University of Georgia.  The Institutional Review Board is a group of people who review human research studies for the safety and protection of people who take part in the studies.<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The sponsor or funding agency for this study<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Federal and state agencies that oversee or review research<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">The results of this research study may be published or used for teaching. I will not put identifiable information on data that are used for these purposes.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Sending Study Information to Research Collaborators Outside the University of Georgia<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">In compliance with data sharing practices of the Association for Psychological Science and American Psychological Association, I might make de-identified data from any published study available to researchers who request it. The data may be shared with other researchers or used for future studies without any additional consent after the removal of identifiers.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>Will I be paid for being in this study?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">For this study, the expected duration is about 1 minute, and you will receive $0.15 for completing the study. There is no bonus in this study.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>What will it cost me to take part in this research study?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">There are no costs to you for taking part in this research study.<\/p><p style=\"margin:20px 0 8px;font-size:16px;font-weight:600;line-height:1.4;\"><strong>What if I have additional questions?<\/strong><\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">If you are interested in participating or have questions about this research, please feel free to contact me at <a href=\"mailto:amin.shiri@uga.edu\">amin.shiri@uga.edu<\/a>. If you have any complaints or questions about your rights as a research volunteer, contact the IRB at 706-542-3199 or by email at <a href=\"mailto:IRB@uga.edu\">IRB@uga.edu<\/a>.<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Please keep this letter for your records. You can do so by printing it now or taking a screenshot.<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Sincerely,<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Amin Shiri, Ph.D.<\/p><p style=\"margin:0 0 12px;font-size:15px;line-height:1.6;\">Terry College of Business, University of Georgia<\/p><\/div>", "choices": [[1, "I agree to take part"], [2, "I do not agree"]], "required": true}], "decline": {"key": "consent", "value": 2}, "assignAfter": true}, {"id": "instructions", "timer": "t_instructions", "items": [{"type": "text", "html": "<ul class=\"hb-lines\"><li>Next you will see the side-effect section of a medicine's leaflet.<\/li><li>Please read it, then answer three questions.<\/li><\/ul>"}]}, {"id": "main", "timer": "t_main", "items": [{"type": "text", "html": "<div class=\"hb-leaflet\"><h3>Medicine A: possible side effects<\/h3><p>Like all medicines, Medicine A can cause side effects, although not everybody gets them.<\/p><ul><li>Stomach upset<\/li><li>Headache<\/li><li>Dizziness<\/li><\/ul><p class=\"hb-leaflet-foot\">Tell your doctor or pharmacist if any side effect bothers you.<\/p><\/div>", "showIf": {"cond_lines": "1"}}, {"type": "text", "html": "<div class=\"hb-leaflet\"><h3>Medicine A: possible side effects<\/h3><p>Like all medicines, Medicine A can cause side effects, although not everybody gets them.<\/p><ul><li>Nausea<\/li><li>Vomiting<\/li><li>Diarrhea<\/li><li>Headache<\/li><li>Dizziness<\/li><\/ul><p class=\"hb-leaflet-foot\">Tell your doctor or pharmacist if any side effect bothers you.<\/p><\/div>", "showIf": {"cond_lines": "3"}}, {"type": "slider", "key": "stomach_n", "html": "Imagine 100 people who get a side effect from Medicine A. How many of them do you think have a stomach problem (such as nausea, vomiting, diarrhea or an upset stomach)?", "min": 0, "max": 100, "grid": 10, "required": true}, {"type": "slider", "key": "headache_n", "html": "Of the same 100 people, how many do you think have a headache?", "min": 0, "max": 100, "grid": 10, "required": true}, {"type": "scale", "key": "willing", "html": "If your doctor prescribed Medicine A, how willing would you be to take it?", "choices": [[1, "1<br>Not at all willing"], [2, "2"], [3, "3"], [4, "4"], [5, "5"], [6, "6"], [7, "7<br>Very willing"]], "required": true}]}, {"id": "demographics", "timer": "t_demographics", "items": [{"type": "number", "key": "age", "html": "What is your age?", "min": 18, "max": 100, "required": true}, {"type": "mc", "key": "gender", "html": "What is your gender?", "choices": [[1, "Woman"], [2, "Man"], [3, "Non-binary"], [4, "Prefer to self-describe", {"text": "gender_4_TEXT"}], [5, "Prefer not to say"]], "required": true}]}, {"id": "debrief", "timer": "t_debrief", "items": [{"type": "text", "html": "<ul class=\"hb-lines\"><li>Thank you. Medicine A does not exist; we wrote its leaflet for this study.<\/li><li>We wanted to learn whether the way side effects are listed changes what people expect.<\/li><li>For any real medicine, follow its own leaflet and ask your doctor or pharmacist about side effects.<\/li><\/ul>"}, {"type": "mc", "key": "withdraw", "html": "Now that you know the full purpose of the study, you can choose to withdraw your answers, with no change in pay.", "choices": [[1, "Keep my answers in the study"], [2, "Withdraw my answers from the study"]], "required": true}]}], "supabaseUrl": "https://auwnzrsbjyuguolvtqdb.supabase.co", "supabaseKey": "sb_publishable_VPZjHycj9M-XcNsFWah9DA_OA_mjS7X", "completionUrl": "https://app.prolific.com/submissions/complete?cc=CYBJ95P2", "completionCode": "CYBJ95P2", "declineHtml": "<p>Thank you. You chose not to take part, so the study ends here.<\/p><p>Please return this study on Prolific.<\/p>"};
+
+  /* ------------------------------------------------------------------ environment */
+  var Q = new URLSearchParams(location.search);
+  var LOCAL = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  var PREVIEW = (LOCAL && Q.get("preview") && SPEC.cells[Q.get("preview")]) ? Q.get("preview") : null;
+  var PID = (Q.get("PROLIFIC_PID") || "").slice(0, 100);
+  var IS_TEST = Q.get("test") === "1";
+  var card = document.getElementById("card");
+  var bar = document.getElementById("bar");
+
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+  }
+  function rnd(n) {
+    if (window.crypto && crypto.getRandomValues) { var a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; }
+    return Math.floor(Math.random() * n);
+  }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function deviceInfo() {
+    var ua = navigator.userAgent || "", tp = navigator.maxTouchPoints || 0, kind = "desktop";
+    if (/iPad/.test(ua) || (/Macintosh/.test(ua) && tp > 1) || (/Android/.test(ua) && !/Mobile/.test(ua))) kind = "tablet";
+    if (/iPhone|iPod|Windows Phone/.test(ua) || (/Android/.test(ua) && /Mobile/.test(ua)) ||
+        (navigator.userAgentData && navigator.userAgentData.mobile === true)) kind = "phone";
+    return { device: kind, user_agent: ua.slice(0, 300), screen_w: screen.width, screen_h: screen.height,
+             viewport_w: window.innerWidth, viewport_h: window.innerHeight, touch_points: tp };
+  }
+
+  /* ------------------------------------------------------------------ saved state (resume after a reload, as Qualtrics does) */
+  var KEY = "cd_" + SPEC.study + "_" + (PID || "anon");
+  function load() { if (PREVIEW) return null; try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } }
+  function save() { if (PREVIEW) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode */ } }
+
+  var PAGE = {};
+  SPEC.pages.forEach(function (p) { if (p.group) p.pages.forEach(function (q) { PAGE[q.id] = q; }); else PAGE[p.id] = p; });
+
+  function newState() {
+    var order = [], choiceOrder = "";
+    SPEC.pages.forEach(function (p) {
+      if (p.group) {
+        var g = p.shuffle ? shuffle(p.pages) : p.pages;
+        g.forEach(function (q) { order.push(q.id); });
+        choiceOrder = g.map(function (q) { return q.orderTag; }).join("|");
+      } else order.push(p.id);
+    });
+    return { v: SPEC.version, session: uid(), pid: PID || ("anon-" + uid()), pidSource: PID ? "prolific" : "anonymous",
+             cell: null, assignSource: null, pages: order, choiceOrder: choiceOrder, idx: 0, answers: {}, timers: {},
+             seq: 0, status: "in_progress", startedAt: Date.now(), finishedAt: null, blur: 0, hidden: 0 };
+  }
+  var S = load();
+  if (!S || S.v !== SPEC.version || !S.pages) S = newState();
+
+  window.addEventListener("blur", function () { S.blur += 1; });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { S.hidden += 1; save(); } });
+
+  /* ------------------------------------------------------------------ backend */
+  function rpc(fn, body, keepalive) {
+    if (PREVIEW) { console.log("[preview] " + fn, body); return Promise.resolve(fn === "assign" ? { condition: PREVIEW, source: "preview" } : null); }
+    return fetch(SPEC.supabaseUrl + "/rest/v1/rpc/" + fn, {
+      method: "POST", keepalive: !!keepalive,
+      headers: { "Content-Type": "application/json", apikey: SPEC.supabaseKey, Authorization: "Bearer " + SPEC.supabaseKey },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.text().then(function (t) { if (!r.ok) throw new Error(fn + " " + r.status + " " + t.slice(0, 200)); return t ? JSON.parse(t) : null; });
+    });
+  }
+  function logEvent(kind, detail) {
+    return rpc("log_event", { p_study: SPEC.study, p_pid: S.pid, p_session: S.session, p_kind: kind, p_detail: detail || null }, true)
+      .catch(function (e) { console.warn("log_event", e); });
+  }
+
+  function cellVals() { return S.cell ? SPEC.cells[S.cell] : {}; }
+  function payload() {
+    var d = { study: SPEC.study, version: SPEC.version, PROLIFIC_PID: PID, STUDY_ID: Q.get("STUDY_ID") || "",
+              SESSION_ID: Q.get("SESSION_ID") || "", pid_source: S.pidSource, is_test: IS_TEST,
+              assignment_source: S.assignSource, started_at: new Date(S.startedAt).toISOString(),
+              finished_at: S.finishedAt ? new Date(S.finishedAt).toISOString() : null,
+              duration_s: Math.round((Date.now() - S.startedAt) / 100) / 10,
+              last_page: S.pages[Math.min(S.idx, S.pages.length) - 1] || "", blur_count: S.blur, hidden_count: S.hidden };
+    var dev = deviceInfo(); for (var k in dev) d[k] = dev[k];
+    var cv = cellVals(); SPEC.record.forEach(function (k) { d[k] = cv[k] != null ? cv[k] : null; });
+    if (SPEC.choiceOrderKey) d[SPEC.choiceOrderKey] = S.choiceOrder;
+    for (var a in S.answers) d[a] = S.answers[a];
+    for (var t in S.timers) {
+      var x = S.timers[t];
+      d[t + "_first_click"] = x.first; d[t + "_last_click"] = x.last; d[t + "_page_submit"] = x.submit; d[t + "_click_count"] = x.clicks;
+    }
+    return d;
+  }
+  function send(status, keepalive) {
+    S.seq += 1; save();
+    return rpc("submit", { p_study: SPEC.study, p_pid: S.pid, p_session: S.session, p_seq: S.seq, p_status: status, p_data: payload() }, keepalive);
+  }
+
+  /* ------------------------------------------------------------------ rendering */
+  function pipe(html) {
+    var cv = cellVals();
+    return String(html).replace(/\$\{e:\/\/Field\/([A-Za-z0-9_]+)\}/g, function (_, k) { return cv[k] != null ? cv[k] : ""; });
+  }
+  function shown(item) {
+    if (!item.showIf) return true;
+    var cv = cellVals();
+    for (var k in item.showIf) if (String(cv[k]) !== String(item.showIf[k])) return false;
+    return true;
+  }
+
+  var cur = null;   // the page on screen: { page, items, t0, first, last, clicks, busy }
+
+  function setProgress(i) { bar.style.width = Math.round(100 * i / S.pages.length) + "%"; }
+
+  function render() {
+    if (S.status === "declined") return showDeclined();
+    if (S.status === "complete") return showDone(false);
+    var page = PAGE[S.pages[S.idx]];
+    setProgress(S.idx);
+    card.innerHTML = "";
+    cur = { page: page, items: [], t0: performance.now(), first: 0, last: 0, clicks: 0, busy: false };
+    var hasTap = false;
+    page.items.forEach(function (it, n) {
+      if (!shown(it)) return;
+      var el = build(it, page.id + "_" + n);
+      card.appendChild(el.node);
+      cur.items.push(el);
+      if (it.type === "tap2") hasTap = true;
+    });
+    var buttons = document.createElement("div");
+    buttons.className = "buttons";
+    buttons.innerHTML = '<button type="button" class="btn" id="next">Next</button><p class="note" id="note" hidden></p>';
+    if (hasTap) buttons.hidden = true;
+    card.appendChild(buttons);
+    document.getElementById("next").addEventListener("click", next);
+    window.scrollTo(0, 0);
+  }
+
+  card.addEventListener("click", function (e) {
+    if (!cur || (e.target.closest && e.target.closest("#next"))) return;
+    var t = Math.round(performance.now() - cur.t0) / 1000;
+    if (!cur.first) cur.first = t;
+    cur.last = t; cur.clicks += 1;
+  }, true);
+
+  function errBox() { var e = document.createElement("div"); e.className = "err"; e.hidden = true; e.setAttribute("role", "alert"); return e; }
+
+  function build(it, uidp) {
+    var node = document.createElement("div");
+    node.className = "q";
+    var api = { item: it, node: node };
+    var html = pipe(it.html || "");
+
+    if (it.type === "text") {
+      node.className = "q q-text";
+      node.innerHTML = '<div class="qt">' + html + "</div>";
+      return api;
+    }
+
+    var qt = document.createElement("div");
+    qt.className = "qt"; qt.id = uidp + "_t"; qt.innerHTML = html;
+    node.appendChild(qt);
+    var err = errBox(); node.appendChild(err);
+    api.err = err;
+
+    if (it.type === "mc") {
+      node.className = "q q-mc";
+      var box = document.createElement("div");
+      box.className = "mc"; box.setAttribute("role", "radiogroup"); box.setAttribute("aria-labelledby", qt.id);
+      var textInput = null, value = null;
+      it.choices.forEach(function (c) {
+        var wrap = document.createElement("div"); wrap.className = "opt-wrap";
+        var lab = document.createElement("label"); lab.className = "opt";
+        lab.innerHTML = '<input type="radio" name="' + uidp + '" value="' + c[0] + '"><span>' + c[1] + "</span>";
+        wrap.appendChild(lab);
+        if (c[2] && c[2].text) {
+          textInput = document.createElement("input");
+          textInput.type = "text"; textInput.className = "txt opt-text"; textInput.hidden = true; textInput.maxLength = 200;
+          textInput.setAttribute("aria-label", c[1]); textInput.dataset.key = c[2].text; textInput.dataset.on = String(c[0]);
+          wrap.appendChild(textInput);
+        }
+        box.appendChild(wrap);
+      });
+      box.addEventListener("change", function (e) {
+        if (e.target.type !== "radio") return;   // the self-describe box also fires change
+        value = parseInt(e.target.value, 10);
+        box.querySelectorAll(".opt").forEach(function (l) { l.classList.toggle("on", l.querySelector("input").checked); });
+        if (textInput) { textInput.hidden = String(value) !== textInput.dataset.on; if (!textInput.hidden) textInput.focus(); }
+        err.hidden = true;
+      });
+      node.appendChild(box);
+      api.valid = function () { return value != null ? "" : "Please answer this question."; };
+      api.collect = function (A) {
+        A[it.key] = value;
+        if (textInput) A[textInput.dataset.key] = (String(value) === textInput.dataset.on) ? textInput.value.trim() : "";
+      };
+      return api;
+    }
+
+    if (it.type === "tap2") {
+      node.className = "q q-tap";
+      var tap = document.createElement("div");
+      tap.className = "tap"; tap.setAttribute("role", "group"); tap.setAttribute("aria-labelledby", qt.id);
+      it.choices.forEach(function (c) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "tap-card"; b.dataset.v = c[0]; b.innerHTML = c[1];
+        tap.appendChild(b);
+      });
+      var chosen = null;
+      tap.addEventListener("click", function (e) {
+        var b = e.target.closest(".tap-card");
+        if (!b || chosen != null || cur.busy) return;
+        chosen = parseInt(b.dataset.v, 10);
+        b.classList.add("on");
+        setTimeout(next, 250);   // the page moves on by itself, as in the Qualtrics script
+      });
+      node.appendChild(tap);
+      api.valid = function () { return chosen != null ? "" : "Please answer this question."; };
+      api.collect = function (A) { A[it.key] = chosen; };
+      return api;
+    }
+
+    if (it.type === "slider") {
+      node.className = "q q-slider";
+      var min = it.min, max = it.max, val = null;
+      var sl = document.createElement("div");
+      sl.className = "sl untouched";
+      var nums = "";
+      for (var g = min; g <= max; g += it.grid) nums += '<span style="left:' + (100 * (g - min) / (max - min)) + '%">' + g + "</span>";
+      sl.innerHTML = '<div class="sl-valrow"><span class="sl-val empty" aria-hidden="true">\u2013</span></div>' +
+        '<div class="sl-nums" aria-hidden="true">' + nums + "</div>" +
+        '<div class="sl-track" role="slider" tabindex="0" aria-valuemin="' + min + '" aria-valuemax="' + max + '" aria-labelledby="' + qt.id + '">' +
+        '<div class="sl-rail"></div><div class="sl-fill"></div><div class="sl-thumb"></div></div>';
+      node.appendChild(sl);
+      var track = sl.querySelector(".sl-track"), badge = sl.querySelector(".sl-val"), row = sl.querySelector(".sl-valrow");
+      var fill = sl.querySelector(".sl-fill"), thumb = sl.querySelector(".sl-thumb");
+      var place = function () {
+        if (val == null) return;
+        var pct = (val - min) / (max - min), w = track.clientWidth;
+        fill.style.width = (pct * 100) + "%"; thumb.style.left = (pct * 100) + "%";
+        var bw = badge.offsetWidth, x = pct * w - bw / 2;
+        badge.style.left = Math.max(0, Math.min(x, row.clientWidth - bw)) + "px";
+      };
+      var set = function (v) {
+        v = Math.max(min, Math.min(max, Math.round(v)));
+        val = v; sl.classList.remove("untouched");
+        badge.textContent = v; badge.className = "sl-val";
+        track.setAttribute("aria-valuenow", v);
+        err.hidden = true; place();
+      };
+      var fromX = function (x) { var r = track.getBoundingClientRect(); return min + (x - r.left) / r.width * (max - min); };
+      track.addEventListener("pointerdown", function (e) {
+        e.preventDefault(); track.focus();
+        try { track.setPointerCapture(e.pointerId); } catch (x) { /* old browsers */ }
+        set(fromX(e.clientX));
+        var move = function (ev) { set(fromX(ev.clientX)); };
+        var up = function () { track.removeEventListener("pointermove", move); track.removeEventListener("pointerup", up); track.removeEventListener("pointercancel", up); };
+        track.addEventListener("pointermove", move); track.addEventListener("pointerup", up); track.addEventListener("pointercancel", up);
+      });
+      track.addEventListener("keydown", function (e) {
+        var base = val == null ? min : val, step = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -10, PageUp: 10 }[e.key];
+        if (step != null) { e.preventDefault(); set(val == null ? base : base + step); }
+        else if (e.key === "Home") { e.preventDefault(); set(min); }
+        else if (e.key === "End") { e.preventDefault(); set(max); }
+      });
+      window.addEventListener("resize", place);
+      api.valid = function () { return val != null ? "" : "Please answer this question."; };
+      api.collect = function (A) { A[it.key] = val; };
+      return api;
+    }
+
+    if (it.type === "scale") {
+      node.className = "q q-scale";
+      var sc = document.createElement("div");
+      sc.className = "scale"; sc.setAttribute("role", "radiogroup"); sc.setAttribute("aria-labelledby", qt.id);
+      var sv = null, ends = ["", ""];
+      it.choices.forEach(function (c, i) {
+        var parts = String(c[1]).split(/<br\s*\/?>/i), lab = document.createElement("label");
+        lab.className = "tile";
+        lab.innerHTML = '<input type="radio" name="' + uidp + '" value="' + c[0] + '"><span>' + parts[0] + "</span>" +
+          (parts.length > 1 ? '<span class="sr"> ' + parts.slice(1).join(" ") + "</span>" : "");
+        if (parts.length > 1) ends[i === 0 ? 0 : 1] = parts.slice(1).join(" ");
+        sc.appendChild(lab);
+      });
+      sc.addEventListener("change", function (e) {
+        if (e.target.type !== "radio") return;
+        sv = parseInt(e.target.value, 10);
+        sc.querySelectorAll(".tile").forEach(function (l) { l.classList.toggle("on", l.querySelector("input").checked); });
+        err.hidden = true;
+      });
+      node.appendChild(sc);
+      var er = document.createElement("div"); er.className = "ends"; er.setAttribute("aria-hidden", "true");
+      er.innerHTML = "<span>" + ends[0] + "</span><span>" + ends[1] + "</span>";
+      node.appendChild(er);
+      api.valid = function () { return sv != null ? "" : "Please answer this question."; };
+      api.collect = function (A) { A[it.key] = sv; };
+      return api;
+    }
+
+    if (it.type === "number") {
+      node.className = "q q-num";
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.className = "txt num"; inp.id = uidp + "_in"; inp.maxLength = 3;
+      inp.setAttribute("inputmode", "numeric"); inp.setAttribute("pattern", "[0-9]*"); inp.setAttribute("autocomplete", "off");
+      inp.setAttribute("aria-labelledby", qt.id);
+      inp.addEventListener("input", function () { err.hidden = true; });
+      node.appendChild(inp);
+      api.valid = function () {
+        var s = inp.value.trim();
+        if (!s) return "Please answer this question.";
+        if (!/^\d+$/.test(s) || +s < it.min || +s > it.max) return "Please enter a number between " + it.min + " and " + it.max + ".";
+        return "";
+      };
+      api.collect = function (A) { A[it.key] = parseInt(inp.value.trim(), 10); };
+      return api;
+    }
+    throw new Error("unknown item type " + it.type);
+  }
+
+  /* ------------------------------------------------------------------ moving on */
+  function note(msg, bad) { var n = document.getElementById("note"); if (!n) return; n.textContent = msg; n.className = "note" + (bad ? " bad" : ""); n.hidden = !msg; }
+
+  function next() {
+    if (!cur || cur.busy) return;
+    var firstBad = null;
+    cur.items.forEach(function (el) {
+      if (!el.valid) return;
+      var m = el.valid();
+      if (m) { el.err.textContent = m; el.err.hidden = false; if (!firstBad) firstBad = el.node; }
+    });
+    if (firstBad) { firstBad.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    cur.busy = true;
+    var page = cur.page;
+    cur.items.forEach(function (el) { if (el.collect) el.collect(S.answers); });
+    S.timers[page.timer] = { first: cur.first, last: cur.last, submit: Math.round(performance.now() - cur.t0) / 1000, clicks: cur.clicks };
+
+    if (page.decline && S.answers[page.decline.key] === page.decline.value) return decline();
+    if (page.assignAfter && !S.cell) return startCell();
+    advance();
+  }
+
+  function advance() {
+    S.idx += 1;
+    if (S.idx >= S.pages.length) return finish();
+    save();
+    send("in_progress", true).catch(function (e) { console.warn("submit", e); });
+    render();
+  }
+
+  function startCell() {
+    var btn = document.getElementById("next");
+    btn.disabled = true; btn.textContent = "Starting\u2026"; note("");
+    var meta = deviceInfo();
+    meta.is_test = IS_TEST; meta.prolific_study_id = Q.get("STUDY_ID") || ""; meta.prolific_session_id = Q.get("SESSION_ID") || "";
+    rpc("assign", { p_study: SPEC.study, p_pid: S.pid, p_session: S.session, p_meta: meta }).then(function (a) {
+      if (!a || !SPEC.cells[a.condition]) throw new Error("bad cell " + JSON.stringify(a));
+      S.cell = a.condition; S.assignSource = a.source;
+      advance();
+    }).catch(function (e) {
+      console.error(e);
+      cur.busy = false; btn.disabled = false; btn.textContent = "Next";
+      note("We could not start the study. Please check your connection and press Next again.", true);
+    });
+  }
+
+  function decline() {
+    S.status = "declined"; S.finishedAt = Date.now(); save();
+    send("declined", true).catch(function (e) { console.warn("submit", e); });
+    showDeclined();
+  }
+
+  function finish() {
+    S.idx = S.pages.length; S.status = "complete"; S.finishedAt = Date.now(); save();
+    var btn = document.getElementById("next");
+    if (btn) { btn.disabled = true; btn.textContent = "Saving\u2026"; }
+    var tries = 0;
+    var attempt = function () {
+      tries += 1;
+      send("complete", false).then(function () { showDone(true); }).catch(function (e) {
+        console.error(e);
+        if (tries < 3) return setTimeout(attempt, 1200 * tries);
+        logEvent("submit_failed", { msg: String(e).slice(0, 200) });
+        showRetry();
+      });
+    };
+    attempt();
+  }
+
+  function showRetry() {
+    setProgress(S.pages.length);
+    card.innerHTML = '<div class="end"><p>We could not save your answers. Please check your internet connection and press <strong>Try again</strong>.</p>' +
+      '<div class="buttons" style="text-align:left"><button type="button" class="btn" id="retry">Try again</button></div>' +
+      '<p class="note" id="fallback" hidden>If this keeps happening, return to Prolific with this completion code: <span class="code">' +
+      esc(SPEC.completionCode) + '</span> or <a href="' + esc(SPEC.completionUrl) + '">click here</a>.</p></div>';
+    var fails = 0;
+    document.getElementById("retry").addEventListener("click", function () {
+      var b = this; b.disabled = true; b.textContent = "Saving\u2026";
+      send("complete", false).then(function () { showDone(true); }).catch(function () {
+        fails += 1; b.disabled = false; b.textContent = "Try again";
+        document.getElementById("fallback").hidden = false;
+      });
+    });
+  }
+
+  function showDone(go) {
+    setProgress(S.pages.length);
+    card.innerHTML = '<div class="end"><p>Thank you. Taking you back to Prolific\u2026</p>' +
+      '<p class="note">If nothing happens, <a href="' + esc(SPEC.completionUrl) + '">click here</a> or enter the completion code <span class="code">' +
+      esc(SPEC.completionCode) + "</span> on Prolific.</p></div>";
+    if (go && !PREVIEW) location.replace(SPEC.completionUrl);
+  }
+
+  function showDeclined() {
+    setProgress(S.pages.length);
+    card.innerHTML = '<div class="end">' + SPEC.declineHtml + "</div>";
+  }
+
+  /* preview only (file:// or localhost): ?preview=<cell>&page=<page id> */
+  if (PREVIEW) {
+    S.cell = PREVIEW; S.assignSource = "preview";
+    var jump = Q.get("page");
+    if (jump && S.pages.indexOf(jump) >= 0) S.idx = S.pages.indexOf(jump);
+  }
+  window.__STUDY = { S: S, SPEC: SPEC, payload: payload };
+  render();
+})();
+</script>
+</body>
+</html>
